@@ -10,16 +10,6 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
 
-/**
- * <p>
- * 
- * </p>
- * 乐字节：专注线上IT培训
- * 答疑老师微信：lezijie
- *
- * @author zhoubin
- *
- */
 @Data
 @EqualsAndHashCode(callSuper = false)
 @TableName("t_order")

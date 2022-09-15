@@ -8,16 +8,7 @@ import lombok.EqualsAndHashCode;
 
 import java.io.Serializable;
 
-/**
- * <p>
- * 
- * </p>
- * 乐字节：专注线上IT培训
- * 答疑老师微信：lezijie
- *
- * @author zhoubin
- *
- */
+
 @Data
 @EqualsAndHashCode(callSuper = false)
 @TableName("t_seckill_order")

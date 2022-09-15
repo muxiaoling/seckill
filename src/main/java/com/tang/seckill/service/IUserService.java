@@ -13,11 +13,6 @@ import javax.servlet.http.HttpServletResponse;
  * <p>
  * 服务类
  * </p>
- * <p>
- * 乐字节：专注线上IT培训
- * 答疑老师微信：lezijie
- *
- * @author zhoubin
  */
 @Service
 public interface IUserService extends IService<User> {

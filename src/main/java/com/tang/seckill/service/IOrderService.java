@@ -10,12 +10,6 @@ import com.tang.seckill.vo.OrderDetailVo;
  * <p>
  *  服务类
  * </p>
- *
- * 乐字节：专注线上IT培训
- * 答疑老师微信：lezijie
- *
- * @author zhoubin
- *
  */
 public interface IOrderService extends IService<Order> {
     Order seckill(User user, GoodsVo goods);

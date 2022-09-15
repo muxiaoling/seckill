@@ -6,12 +6,6 @@ import lombok.NoArgsConstructor;
 
 /**
  * 秒杀信息
- * <p>
- * 乐字节：专注线上IT培训
- * 答疑老师微信：lezijie
- *
- * @author zhoubin
- * @since 1.0.0
  */
 @Data
 @NoArgsConstructor
