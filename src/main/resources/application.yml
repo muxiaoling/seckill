@@ -1,4 +1,24 @@
 spring:
+  rabbitmq:
+    host: 121.89.240.138
+    username: guest
+    password: guest
+    virtual-host: /
+    port: 5672
+    listener:
+      simple:
+        concurrency: 10
+        max-concurrency: 10
+        prefetch: 1
+        auto-startup: true
+        default-requeue-rejected: true
+    template:
+      retry:
+        enabled: true
+        initial-interval: 1000ms
+        max-attempts: 3
+        max-interval: 10000ms
+        multiplier: 1
   #静态资源处理
   resources:
     #启动默认静态资源处理，默认启用
@@ -72,27 +92,6 @@ spring:
     config-file:
       yaml: classpath:redisson.yml
 
-  rabbitmq:
-    host: 121.89.240.138
-    username: guest
-    password: guest
-    virtual-host: /
-    port: 5672
-    listener:
-      simple:
-        concurrency: 10
-        max-concurrency: 10
-        prefetch: 1
-        auto-startup: true
-        default-requeue-rejected: true
-    template:
-      retry:
-        enabled: true
-        initial-interval: 1000ms
-        max-attempts: 3
-        max-interval: 10000ms
-        multiplier: 1
-
 #Mybatis-plus配置
 mybatis-plus:
   # 配置Mapper.xml映射文件
@@ -105,3 +104,5 @@ mybatis-plus:
 logging:
   level:
     com.tang.seckill.mapper: debug
+server:
+  port: 8080

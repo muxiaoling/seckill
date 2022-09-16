@@ -11,8 +11,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @Controller
 @RequestMapping("/user")
 public class UserController {
-    @Autowired
-    private MQSender mqSender;
+//    @Autowired
+//    private MQSender mqSender;
 
 
     @RequestMapping("/info")

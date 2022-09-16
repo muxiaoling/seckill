@@ -24,7 +24,8 @@ public class LoginController {
     private IUserService userService;
 
     /**
-        跳转登录页面
+     * 跳转登录页面
+     * admin 123456
      */
     @RequestMapping("/toLogin")
     public String toLogin() {

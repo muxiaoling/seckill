@@ -42,19 +42,23 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     private IGoodsService goodsService;
     @Autowired
     private RedisTemplate redisTemplate;
-    //秒杀
-    // innodb行锁+组合索引
+
+    /**
+     * 下单操作  上游是消息队列消费
+     * @param user
+     * @param goods
+     * @return
+     */
     @Transactional
     @Override
     public Order seckill(User user, GoodsVo goods) {
-        ValueOperations valueOperations = redisTemplate.opsForValue();
         SeckillGoods seckillGoods = seckillGoodsService.getOne(new QueryWrapper<SeckillGoods>().eq("goods_id",
                 goods.getId()));
         seckillGoods.setStockCount(seckillGoods.getStockCount() - 1);
         seckillGoodsService.update(new UpdateWrapper<SeckillGoods>().setSql("stock_count = stock_count-1")
                 .eq("goods_id", goods.getId()).gt("stock_count", 0));
         if (seckillGoods.getStockCount() < 1) {
-            valueOperations.set("isStockEmpty:" + goods.getId(), "0");
+            redisTemplate.opsForValue().set("isStockEmpty:" + goods.getId(), "0");
             return null;
         }
         //生成订单
@@ -79,7 +83,11 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         return order;
     }
 
-    //订单详情
+    /**
+     * 获取订单详情
+     * @param orderId 订单id号
+     * @return 订单详情
+     */
     @Override
     public OrderDetailVo detail(Long orderId) {
         if (orderId == null) {

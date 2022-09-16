@@ -2,6 +2,7 @@ package com.tang.seckill.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.tang.seckill.config.AccessLimit;
+import com.tang.seckill.lock.DistributedLocker;
 import com.tang.seckill.pojo.Order;
 import com.tang.seckill.pojo.SeckillMessage;
 import com.tang.seckill.pojo.SeckillOrder;
@@ -14,19 +15,19 @@ import com.tang.seckill.utils.JsonUtil;
 import com.tang.seckill.vo.GoodsVo;
 import com.tang.seckill.vo.RespBean;
 import com.tang.seckill.vo.RespBeanEnum;
+import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 import org.thymeleaf.util.StringUtils;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +35,7 @@ import java.util.Map;
 
 @Controller
 @RequestMapping("/seckill")
+@Slf4j
 public class SecKillController implements InitializingBean {
     @Autowired
     private IGoodsService goodsService;
@@ -47,35 +49,14 @@ public class SecKillController implements InitializingBean {
     private MQSender mqSender;
     @Autowired
     private RedisScript<Long> script;
+    @Autowired
+    private DistributedLocker distributedLocker;
 
-
+    //分布式锁key
+    private static final String DISTRIBUTED_LOCK_KEY = "LOCK_KEY";
+    //库存为空，设置内存标记
     private Map<Long, Boolean> EmptyStockMap = new HashMap<>();
-    /**
-     * 秒杀
-     */
-    @RequestMapping("/doSeckill2")
-    public String doSecKill2(Model model, User user, Long goodsId) {
-        if (user == null) return "login";
-        model.addAttribute("user", user);
-        GoodsVo goods = goodsService.findGoodsVoByGoodsId(goodsId);
-        if (goods.getStockCount() < 1) {
-            model.addAttribute("errmsg", RespBeanEnum.EMPTY_STOCK.getMessage());
-            return "secKillFail";
-        }
 
-        //判断是否重复抢购
-        SeckillOrder seckillOrder =
-                seckillOrderService.getOne(new QueryWrapper<SeckillOrder>().eq("user_id", user.getId()).eq("goods_id", goodsId));
-        if (seckillOrder != null) {
-            model.addAttribute("errmsg", RespBeanEnum.REPEATE_ERROR.getMessage());
-            return "secKillFail";
-        }
-        Order order = orderService.seckill(user, goods);
-        model.addAttribute("order", order);
-        model.addAttribute("goods", goods);
-        return "orderDetail";
-    }
-    
     /**
      * 秒杀
      * windows优化前qps 785.9
@@ -86,7 +67,6 @@ public class SecKillController implements InitializingBean {
     @ResponseBody
     public RespBean doSecKill(@PathVariable String path, User user, Long goodsId) {
         if (user == null) return RespBean.error(RespBeanEnum.SESSION_ERROR);
-        ValueOperations valueOperations = redisTemplate.opsForValue();
         boolean check = orderService.checkPath(user, goodsId, path);
         if (!check) {
             return RespBean.error(RespBeanEnum.REQUEST_ILLEGAL);
@@ -95,19 +75,30 @@ public class SecKillController implements InitializingBean {
         String seckillOrderJson =
                 (String) redisTemplate.opsForValue().get("order:" + user.getId() + ":" + goodsId);
         if (!StringUtils.isEmpty(seckillOrderJson)) {
-            return RespBean.error(RespBeanEnum.REPEATE_ERROR);
+            return RespBean.error(RespBeanEnum.REPEAT_BUYING_ERROR);
         }
+        //内存标记商品库存不足，直接返回
         if (EmptyStockMap.get(goodsId)) {
             return RespBean.error(RespBeanEnum.EMPTY_STOCK);
         }
         //预减库存
 //        Long stock = valueOperations.decrement("seckillGoods:"+goodsId);
-        Long stock = (Long) redisTemplate.execute(script, Collections.singletonList("seckillGoods:" + goodsId),
-                Collections.EMPTY_LIST);
-        if (stock <= 0) {
-            EmptyStockMap.put(goodsId, true);
-            valueOperations.increment("seckillGoods:" + goodsId);
-            return RespBean.error(RespBeanEnum.EMPTY_STOCK);
+        RLock rLock = distributedLocker.lock(DISTRIBUTED_LOCK_KEY);
+        log.info("加锁成功，开始执行减库存操作");
+        //Long stock = (Long) redisTemplate.execute(script, Collections.singletonList("seckillGoods:" + goodsId), Collections.EMPTY_LIST);
+        try {
+            int stock = (Integer) redisTemplate.opsForValue().get("seckillGoods:" + goodsId);
+            if (stock <= 0) {
+                EmptyStockMap.put(goodsId, true);
+                return RespBean.error(RespBeanEnum.EMPTY_STOCK);
+            }
+            redisTemplate.opsForValue().decrement("seckillGoods:" + goodsId, 1L);
+        }catch (Exception e) {
+            e.printStackTrace();
+            return RespBean.error(RespBeanEnum.DECREMENT_STOCK_ERROR);
+        } finally {
+            distributedLocker.unlock(rLock);
+            log.info("解锁成功");
         }
         SeckillMessage seckillMessage = new SeckillMessage(user, goodsId);
         mqSender.sendSeckillMessage(JsonUtil.object2JsonStr(seckillMessage));

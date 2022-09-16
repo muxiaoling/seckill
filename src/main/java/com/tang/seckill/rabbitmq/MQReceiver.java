@@ -1,9 +1,9 @@
 package com.tang.seckill.rabbitmq;
 
+import com.tang.seckill.mapper.GoodsMapper;
 import com.tang.seckill.pojo.SeckillMessage;
 import com.tang.seckill.pojo.SeckillOrder;
 import com.tang.seckill.pojo.User;
-import com.tang.seckill.service.IGoodsService;
 import com.tang.seckill.service.IOrderService;
 import com.tang.seckill.utils.JsonUtil;
 import com.tang.seckill.vo.GoodsVo;
@@ -11,25 +11,26 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
-@Service
+@Component
 @Slf4j
 public class MQReceiver {
     @Autowired
-    private IGoodsService goodsService;
+    private GoodsMapper goodsMapper;
     @Autowired
     private RedisTemplate redisTemplate;
     @Autowired
     private IOrderService orderService;
+
     //下单操作
-    @RabbitListener(queues = "seckillQueue")
+    @RabbitListener(queues = "testQueue1")
     public void receiver(String message) {
-        log.info("接收到的消息：" + message);
+        log.info("成功接收消息：" + message);
         SeckillMessage seckillMessage = JsonUtil.jsonStr2Object(message, SeckillMessage.class);
         Long goodId = seckillMessage.getGoodId();
         User user = seckillMessage.getUser();
-        GoodsVo goodsVo = goodsService.findGoodsVoByGoodsId(goodId);
+        GoodsVo goodsVo = goodsMapper.findGoodsVoByGoodsId(goodId);
         if (goodsVo.getStockCount() < 1) {
             return;
         }

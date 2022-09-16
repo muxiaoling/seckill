@@ -3,19 +3,22 @@ package com.tang.seckill.rabbitmq;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 
-@Service
+@Component
 @Slf4j
 public class MQSender {
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
+    private static final String EXCHANGE = "testExchange1";
+
     //发送秒杀信息
     public void sendSeckillMessage(String message) {
         log.info("发送消息" + message);
-        rabbitTemplate.convertAndSend("seckillExchange", "seckill.message", message);
+        rabbitTemplate.convertAndSend(EXCHANGE, "test1.msg", message);
     }
 //
 //

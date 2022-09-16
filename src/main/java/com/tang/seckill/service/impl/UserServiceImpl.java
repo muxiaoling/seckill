@@ -14,6 +14,7 @@ import org.thymeleaf.util.StringUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IUserService {
@@ -54,7 +55,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         //生成Cookie
         String ticket = UUIDUtil.uuid();
         //request.getSession().setAttribute(ticket, user);
-        redisTemplate.opsForValue().set("user:" + ticket, user);
+        redisTemplate.opsForValue().set("user:" + ticket, user, 30, TimeUnit.MINUTES);
         CookieUtil.setCookie(request, response, "userTicket", ticket);
         return RespBean.success(ticket);
     }

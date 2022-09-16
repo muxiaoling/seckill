@@ -3,6 +3,7 @@ package com.tang.seckill.utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tang.seckill.pojo.User;
 import com.tang.seckill.vo.RespBean;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -19,7 +20,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-
+@Slf4j
 public class UserUtil {
     private static void createUser(int count) throws Exception {
         List<User> users = new ArrayList<>(count);
@@ -34,7 +35,8 @@ public class UserUtil {
             user.setPassword(MD5Utils.inputPassToDBPass("123456", user.getSlat()));
             users.add(user);
         }
-        System.out.println("create user");
+        log.info("创建用户");
+
          // //插入数据库
 //         Connection conn = getConn();
 //         String sql = "insert into t_user(login_count, nickname, register_date, slat, password, id) values(?,?,?,?,?,?)";
@@ -85,17 +87,17 @@ public class UserUtil {
             ObjectMapper mapper = new ObjectMapper();
             RespBean respBean = mapper.readValue(response, RespBean.class);
             String userTicket = ((String) respBean.getObj());
-            System.out.println("create userTicket : " + user.getId());
+            log.info("创建 userTicket : " + user.getId());
 
             String row = user.getId() + "," + userTicket;
             raf.seek(raf.length());
             raf.write(row.getBytes());
             raf.write("\r\n".getBytes());
-            System.out.println("write to file : " + user.getId());
+            log.info("写文件 : " + user.getId());
         }
         raf.close();
 
-        System.out.println("over");
+        log.info("======================完成=======================");
     }
 
     private static Connection getConn() throws Exception {
