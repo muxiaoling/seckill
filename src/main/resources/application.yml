@@ -1,6 +1,6 @@
 spring:
   rabbitmq:
-    host: 121.89.240.138
+    host: xxx.xxx.xxx.xxx
     username: guest
     password: guest
     virtual-host: /
